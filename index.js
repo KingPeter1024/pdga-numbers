@@ -37,32 +37,29 @@ setInterval(async () => {
   const newNumber = data.pdga + (recentlyFound ? 5 : 1)
   const newMember = await pullPage(newNumber)
   const memberText = await newMember.text()
+  const numberIndex = memberText.indexOf(` #${newNumber}<`);
 
-  if (memberText.includes(String(newNumber))) {
+  if (numberIndex > -1) {
     const newData = {}
-    const numberIndex = memberText.indexOf(` #${newNumber}<`);
+    console.log(newNumber)
 
-    if (numberIndex > -1) {
-      console.log(newNumber)
-
-      let nameStart = numberIndex;
-      while (true) {
-        if (memberText.charAt(nameStart - 1) === ">") {
-          break
-        } else {
-          nameStart -= 1
-        }
+    let nameStart = numberIndex;
+    while (true) {
+      if (memberText.charAt(nameStart - 1) === ">") {
+        break
+      } else {
+        nameStart -= 1
       }
-      const nameLine = memberText.substring(nameStart, numberIndex + 8)
-      const nameParts = nameLine.split("#")
-      newData.name = nameParts[0]
-      newData.pdga = Number.parseInt(nameParts[1])
-      newData.time = (moment().format())
-      data = newData
-      io.sockets.emit("update", data)
     }
+    const nameLine = memberText.substring(nameStart, numberIndex + 8)
+    const nameParts = nameLine.split("#")
+    newData.name = nameParts[0]
+    newData.pdga = Number.parseInt(nameParts[1])
+    newData.time = (moment().format())
+    data = newData
+    io.sockets.emit("update", data)
     
-    delay = 3
+    delay = 1
     recentlyFound = true
   } else {
     delay = recentlyFound || (newNumber > 199950 && newNumber < 200000) ? 1 : 20
