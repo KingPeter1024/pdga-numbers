@@ -11,13 +11,13 @@ export default function App() {
 
   useEffect(() => {
     const socket = io("/")
-    
     socket.on("update", (params) => {
       setRecentData(params || {})
     })
     setTimeout(() => {
+      // Ask for current data
       socket.emit("init")
-    }, 1000)
+    }, 300)
   })
 
   return (
@@ -56,6 +56,9 @@ export default function App() {
         >
           Join the PDGA
         </a>
+        <p style={{marginTop: 20, fontSize: 12, maxWidth: 350}}>
+          PDGA Numbers is a free app that refreshes constantly, pinging the PDGA's website to see what who the most recent member is. This site will be updated far faster than the PDGA's official member list will!
+        </p>
       </div>
 
       <div style={{
@@ -65,7 +68,6 @@ export default function App() {
         <span style={{fontSize: 12}}>
           By Peter Gossell - PDGA #62067 - github.com/kingpeter1024/pdga-numbers
         </span>
-        
       </div>
     </div>
   );

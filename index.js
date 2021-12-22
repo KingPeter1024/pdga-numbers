@@ -14,15 +14,16 @@ const server = http.createServer(app);
 const socketIo = require("socket.io");
 const io = socketIo(server);
 
-let data = {pdga: 199550}
-let delay = 1
-let recentlyFound = true;
+// Variables to keep track of
+let data = {pdga: 199580} // Current latest member
+let delay = 1 // Seconds before the next call to the PDGA
+let lookAhead = 0; // How far ahead (scale of 5) to look to keep up with quickly-increasing numbers
 
+// Allow connection to websockets
 io.on("connection", (socket) => {
   socket.on("init", () => {
     socket.emit("update", data)
   })
-  
 });
 
 setInterval(async () => {
@@ -32,17 +33,20 @@ setInterval(async () => {
   }
 
   const pullPage = async (pdgaNumber) => {
-    return await fetch(`https://www.pdga.com/player/${pdgaNumber}`)
+    const raw = await fetch(`https://www.pdga.com/player/${pdgaNumber}`)
+    return await raw.text()
   }
-  const newNumber = data.pdga + (recentlyFound ? 5 : 1)
-  const newMember = await pullPage(newNumber)
-  const memberText = await newMember.text()
+  const newNumber = data.pdga + 1 + (lookAhead * 5)
+  const memberText = await pullPage(newNumber)
   const numberIndex = memberText.indexOf(` #${newNumber}<`);
 
   if (numberIndex > -1) {
-    const newData = {}
+    // This is a new member
     console.log(newNumber)
 
+    const newData = {}
+
+    // Screen scrape for details
     let nameStart = numberIndex;
     while (true) {
       if (memberText.charAt(nameStart - 1) === ">") {
@@ -56,14 +60,17 @@ setInterval(async () => {
     newData.name = nameParts[0]
     newData.pdga = Number.parseInt(nameParts[1])
     newData.time = (moment().format())
+
+    // Update and send to users
     data = newData
     io.sockets.emit("update", data)
     
     delay = 1
-    recentlyFound = true
+    lookAhead = 4
   } else {
-    delay = recentlyFound || (newNumber > 199950 && newNumber < 200000) ? 1 : 20
-    recentlyFound = false
+    // New user was not found
+    lookAhead = Math.max(0, lookAhead - 1)
+    delay = lookAhead > 0 || (newNumber > 199950 && newNumber < 200000) ? 1 : 20
   }
 }, 1000)
 
